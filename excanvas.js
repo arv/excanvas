@@ -15,7 +15,7 @@
 // TODO: Patterns
 // TODO: Radial gradient
 // TODO: Clipping paths
-// TODO: Coordsize
+// TODO: Coordsize (still need to support stretching)
 // TODO: Painting mode
 // TODO: Optimize
 // TODO: canvas width/height sets content size in moz, border size in ie
@@ -387,7 +387,7 @@ if (!window.CanvasRenderingContext2D) {
 
     // For some reason that I've now forgotten, using divs didn't work
     vmlStr.push(' <g_vml_:group',
-                ' coordsize="100,100"',
+                ' coordsize="1000,1000"',
                 ' coordorigin="0, 0"' ,
                 ' style="width:100px;height:100px;position:absolute;');
 
@@ -417,7 +417,7 @@ if (!window.CanvasRenderingContext2D) {
       max.x = Math.max(max.x, c2.x, c3.x, c4.x);
       max.y = Math.max(max.y, c2.y, c3.y, c4.y);
 
-      vmlStr.push(" padding:0 ", Math.floor(max.x), "px ", Math.floor(max.y),
+      vmlStr.push(" padding:0 ", Math.round(max.x), "px ", Math.round(max.y),
                   "px 0;filter:progid:DXImageTransform.Microsoft.Matrix(",
                   filter.join(""), ", sizingmethod='clip');")
     } else {
@@ -450,7 +450,7 @@ if (!window.CanvasRenderingContext2D) {
                  ' fillcolor="', color, '"',
                  ' filled="', Boolean(aFill), '"',
                  ' style="position:absolute;width:10;height:10;"',
-                 ' coordorigin="0 0" coordsize="10 10"',
+                 ' coordorigin="0 0" coordsize="100 100"',
                  ' stroked="', !aFill, '"',
                  ' strokeweight="', this.lineWidth, '"',
                  ' strokecolor="', color, '"',
@@ -466,11 +466,11 @@ if (!window.CanvasRenderingContext2D) {
       if (p.type == "moveTo") {
         lineStr.push(" m ");
         var c = this.getCoords_(p.x, p.y);
-        lineStr.push(Math.floor(c.x), ",", Math.floor(c.y));
+        lineStr.push(Math.round(c.x), ",", Math.round(c.y));
       } else if (p.type == "lineTo") {
         lineStr.push(" l ");
         var c = this.getCoords_(p.x, p.y);
-        lineStr.push(Math.floor(c.x), ",", Math.floor(c.y));
+        lineStr.push(Math.round(c.x), ",", Math.round(c.y));
       } else if (p.type == "close") {
         lineStr.push(" x ");
       } else if (p.type == "bezierCurveTo") {
@@ -478,9 +478,9 @@ if (!window.CanvasRenderingContext2D) {
         var c = this.getCoords_(p.x, p.y);
         var c1 = this.getCoords_(p.cp1x, p.cp1y);
         var c2 = this.getCoords_(p.cp2x, p.cp2y);
-        lineStr.push(Math.floor(c1.x), ",", Math.floor(c1.y), ",",
-                     Math.floor(c2.x), ",", Math.floor(c2.y), ",",
-                     Math.floor(c.x), ",", Math.floor(c.y));
+        lineStr.push(Math.round(c1.x), ",", Math.round(c1.y), ",",
+                     Math.round(c2.x), ",", Math.round(c2.y), ",",
+                     Math.round(c.x), ",", Math.round(c.y));
       } else if (p.type == "arc") {
         lineStr.push(" ar ");
         var c  = this.getCoords_(p.x, p.y);
@@ -493,12 +493,12 @@ if (!window.CanvasRenderingContext2D) {
         var absXScale = this.m_[0][0];
         var absYScale = this.m_[1][1];
 
-        lineStr.push(Math.floor(c.x - absXScale * p.radius), ",",
-                     Math.floor(c.y - absYScale * p.radius), " ",
-                     Math.floor(c.x + absXScale * p.radius), ",",
-                     Math.floor(c.y + absYScale * p.radius), " ",
-                     Math.floor(cStart.x), ",", Math.floor(cStart.y), " ",
-                     Math.floor(cEnd.x), ",", Math.floor(cEnd.y));
+        lineStr.push(Math.round(c.x - absXScale * p.radius), ",",
+                     Math.round(c.y - absYScale * p.radius), " ",
+                     Math.round(c.x + absXScale * p.radius), ",",
+                     Math.round(c.y + absYScale * p.radius), " ",
+                     Math.round(cStart.x), ",", Math.round(cStart.y), " ",
+                     Math.round(cEnd.x), ",", Math.round(cEnd.y));
       }
 
 
@@ -530,8 +530,8 @@ if (!window.CanvasRenderingContext2D) {
       var height = (max.y - min.y);
       var dimension = (width > height) ? width : height;
 
-      focus.x = Math.floor((this.fillStyle.focus_.x / width) * 100 + 50) + "%";
-      focus.y = Math.floor((this.fillStyle.focus_.y / height) * 100 + 50) + "%";
+      focus.x = Math.round((this.fillStyle.focus_.x / width) * 100 + 50) + "%";
+      focus.y = Math.round((this.fillStyle.focus_.y / height) * 100 + 50) + "%";
 
       var colors = [];
 
@@ -613,8 +613,8 @@ if (!window.CanvasRenderingContext2D) {
    */
   contextPrototype.getCoords_ = function(aX, aY) {
     return {
-      x: (aX * this.m_[0][0] + aY * this.m_[1][0] + this.m_[2][0]),
-      y: (aX * this.m_[0][1] + aY * this.m_[1][1] + this.m_[2][1])
+      x: 10 * (aX * this.m_[0][0] + aY * this.m_[1][0] + this.m_[2][0]) - 5,
+      y: 10 * (aX * this.m_[0][1] + aY * this.m_[1][1] + this.m_[2][1]) - 5
     }
   };
 
