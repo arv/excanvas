@@ -26,6 +26,12 @@ if (!window.CanvasRenderingContext2D) {
 
 (function () {
 
+  // alias some functions to make (compiled) code shorter
+  var m = Math;
+  var mr = m.round;
+  var ms = m.sin;
+  var mc = m.cos;
+
   var G_vmlCanvasManager_ = {
     init: function (opt_doc) {
       var doc = opt_doc || document;
@@ -283,11 +289,11 @@ if (!window.CanvasRenderingContext2D) {
       aEndAngle = t;
     }
 
-    var xStart = aX + (Math.cos(aStartAngle) * aRadius);
-    var yStart = aY + (Math.sin(aStartAngle) * aRadius);
+    var xStart = aX + (mc(aStartAngle) * aRadius);
+    var yStart = aY + (ms(aStartAngle) * aRadius);
 
-    var xEnd = aX + (Math.cos(aEndAngle) * aRadius);
-    var yEnd = aY + (Math.sin(aEndAngle) * aRadius);
+    var xEnd = aX + (mc(aEndAngle) * aRadius);
+    var yEnd = aY + (ms(aEndAngle) * aRadius);
 
     this.currentPath_.push({type: "arc",
                            x: aX,
@@ -417,7 +423,7 @@ if (!window.CanvasRenderingContext2D) {
       max.x = Math.max(max.x, c2.x, c3.x, c4.x);
       max.y = Math.max(max.y, c2.y, c3.y, c4.y);
 
-      vmlStr.push(" padding:0 ", Math.round(max.x), "px ", Math.round(max.y),
+      vmlStr.push(" padding:0 ", mr(max.x), "px ", mr(max.y),
                   "px 0;filter:progid:DXImageTransform.Microsoft.Matrix(",
                   filter.join(""), ", sizingmethod='clip');")
     } else {
@@ -466,11 +472,11 @@ if (!window.CanvasRenderingContext2D) {
       if (p.type == "moveTo") {
         lineStr.push(" m ");
         var c = this.getCoords_(p.x, p.y);
-        lineStr.push(Math.round(c.x), ",", Math.round(c.y));
+        lineStr.push(mr(c.x), ",", mr(c.y));
       } else if (p.type == "lineTo") {
         lineStr.push(" l ");
         var c = this.getCoords_(p.x, p.y);
-        lineStr.push(Math.round(c.x), ",", Math.round(c.y));
+        lineStr.push(mr(c.x), ",", mr(c.y));
       } else if (p.type == "close") {
         lineStr.push(" x ");
       } else if (p.type == "bezierCurveTo") {
@@ -478,9 +484,9 @@ if (!window.CanvasRenderingContext2D) {
         var c = this.getCoords_(p.x, p.y);
         var c1 = this.getCoords_(p.cp1x, p.cp1y);
         var c2 = this.getCoords_(p.cp2x, p.cp2y);
-        lineStr.push(Math.round(c1.x), ",", Math.round(c1.y), ",",
-                     Math.round(c2.x), ",", Math.round(c2.y), ",",
-                     Math.round(c.x), ",", Math.round(c.y));
+        lineStr.push(mr(c1.x), ",", mr(c1.y), ",",
+                     mr(c2.x), ",", mr(c2.y), ",",
+                     mr(c.x), ",", mr(c.y));
       } else if (p.type == "arc") {
         lineStr.push(" ar ");
         var c  = this.getCoords_(p.x, p.y);
@@ -493,12 +499,12 @@ if (!window.CanvasRenderingContext2D) {
         var absXScale = this.m_[0][0];
         var absYScale = this.m_[1][1];
 
-        lineStr.push(Math.round(c.x - absXScale * p.radius), ",",
-                     Math.round(c.y - absYScale * p.radius), " ",
-                     Math.round(c.x + absXScale * p.radius), ",",
-                     Math.round(c.y + absYScale * p.radius), " ",
-                     Math.round(cStart.x), ",", Math.round(cStart.y), " ",
-                     Math.round(cEnd.x), ",", Math.round(cEnd.y));
+        lineStr.push(mr(c.x - absXScale * p.radius), ",",
+                     mr(c.y - absYScale * p.radius), " ",
+                     mr(c.x + absXScale * p.radius), ",",
+                     mr(c.y + absYScale * p.radius), " ",
+                     mr(cStart.x), ",", mr(cStart.y), " ",
+                     mr(cEnd.x), ",", mr(cEnd.y));
       }
 
 
@@ -530,8 +536,8 @@ if (!window.CanvasRenderingContext2D) {
       var height = (max.y - min.y);
       var dimension = (width > height) ? width : height;
 
-      focus.x = Math.round((this.fillStyle.focus_.x / width) * 100 + 50) + "%";
-      focus.y = Math.round((this.fillStyle.focus_.y / height) * 100 + 50) + "%";
+      focus.x = mr((this.fillStyle.focus_.x / width) * 100 + 50) + "%";
+      focus.y = mr((this.fillStyle.focus_.y / height) * 100 + 50) + "%";
 
       var colors = [];
 
@@ -642,8 +648,8 @@ if (!window.CanvasRenderingContext2D) {
   };
 
   contextPrototype.rotate = function(aRot) {
-    var c = Math.cos(aRot);
-    var s = Math.sin(aRot);
+    var c = mc(aRot);
+    var s = ms(aRot);
 
     var m1 = [
       [c,  s, 0],
