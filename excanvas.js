@@ -289,11 +289,13 @@ if (!window.CanvasRenderingContext2D) {
       aEndAngle = t;
     }
 
-    var xStart = aX + (mc(aStartAngle) * aRadius);
-    var yStart = aY + (ms(aStartAngle) * aRadius);
+    aRadius *= 10;
 
-    var xEnd = aX + (mc(aEndAngle) * aRadius);
-    var yEnd = aY + (ms(aEndAngle) * aRadius);
+    var xStart = aX + (mc(aStartAngle) * aRadius) - 5;
+    var yStart = aY + (ms(aStartAngle) * aRadius) - 5;
+
+    var xEnd = aX + (mc(aEndAngle) * aRadius) - 5;
+    var yEnd = aY + (ms(aEndAngle) * aRadius) - 5;
 
     this.currentPath_.push({type: "arc",
                            x: aX,
