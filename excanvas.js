@@ -19,7 +19,6 @@
 // TODO: Painting mode
 // TODO: Optimize
 // TODO: canvas width/height sets content size in moz, border size in ie
-// TODO: Painting outside the canvas should not be allowed
 
 // only add this code if we do not already have a canvas implementation
 if (!window.CanvasRenderingContext2D) {
@@ -110,8 +109,10 @@ if (!window.CanvasRenderingContext2D) {
         // we need to watch changes to width and height
         switch (e.propertyName) {
           case "width":
+            el.firstChild.style.width =  el.offsetWidth + 'px';
+            break;
           case "height":
-            // coord size changed?
+            el.firstChild.style.height = el.offsetHeight + 'px';
             break;
         }
       });
@@ -225,7 +226,6 @@ if (!window.CanvasRenderingContext2D) {
    */
    function CanvasRenderingContext2D_(surfaceElement) {
     this.m_ = createMatrixIdentity();
-    this.element_ = surfaceElement;
 
     this.mStack_ = [];
     this.aStack_ = [];
@@ -240,6 +240,15 @@ if (!window.CanvasRenderingContext2D) {
     this.lineCap = "butt";
     this.miterLimit = 10;
     this.globalAlpha = 1;
+
+    var el = document.createElement('div');
+    el.style.width =  surfaceElement.offsetWidth + 'px';
+    el.style.height = surfaceElement.offsetHeight + 'px';
+    el.style.overflow = 'hidden';
+    el.style.position = 'absolute';
+    surfaceElement.appendChild(el);
+
+    this.element_ = el;
   };
 
   var contextPrototype = CanvasRenderingContext2D_.prototype;
