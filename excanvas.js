@@ -131,6 +131,7 @@ if (!window.CanvasRenderingContext2D) {
         el.style.height = attrs.height.nodeValue + "px";
       }
       //el.getContext().setCoordsize_()
+      return el;
     }
   };
 
