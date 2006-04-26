@@ -91,9 +91,10 @@ if (!window.CanvasRenderingContext2D) {
     /**
      * Public initializes a canvas element so that it can be used as canvas
      * element from now on. This is called automatically before the page is
-     * loaded but if you are creating elements using createElement yuo need to
+     * loaded but if you are creating elements using createElement you need to
      * make sure this is called on the element.
-     * @param el {HTMLElement} The canvas element to initialize.
+     * @param {HTMLElement} el The canvas element to initialize.
+     * @return {HTMLElement} the element that was created.
      */
     initElement: function (el) {
       el = this.fixElement_(el);
@@ -104,20 +105,9 @@ if (!window.CanvasRenderingContext2D) {
         return this.context_ = new CanvasRenderingContext2D_(this);
       };
 
-      var self = this; //bind
-      el.attachEvent("onpropertychange", function (e) {
-        // we need to watch changes to width and height
-        switch (e.propertyName) {
-          case "width":
-            el.firstChild.style.width =  el.offsetWidth + 'px';
-            break;
-          case "height":
-            el.firstChild.style.height = el.offsetHeight + 'px';
-            break;
-        }
-      });
-
-      // if style.height is set
+      // do not use inline function because that will leak memory
+      // el.attachEvent('onpropertychange', onPropertyChange)
+      el.attachEvent('onresize', onResize);
 
       var attrs = el.attributes;
       if (attrs.width && attrs.width.specified) {
@@ -134,6 +124,24 @@ if (!window.CanvasRenderingContext2D) {
       return el;
     }
   };
+
+  function onPropertyChange(e) {
+    // we need to watch changes to width and height
+    switch (e.propertyName) {
+      case 'width':
+      case 'height':
+        // TODO: coordsize and size
+        break;
+    }
+  }
+
+  function onResize(e) {
+    var el = e.srcElement;
+    if (el.firstChild) {
+      el.firstChild.style.width =  el.clientWidth + 'px';
+      el.firstChild.style.height = el.clientHeight + 'px';
+    }
+  }
 
   G_vmlCanvasManager_.init();
 
@@ -222,7 +230,7 @@ if (!window.CanvasRenderingContext2D) {
   /**
    * This class implements CanvasRenderingContext2D interface as described by
    * the WHATWG.
-   * @param surfaceElement {HTMLElement} The element that the 2D context should
+   * @param {HTMLElement} surfaceElement The element that the 2D context should
    * be associated with
    */
    function CanvasRenderingContext2D_(surfaceElement) {
@@ -243,8 +251,8 @@ if (!window.CanvasRenderingContext2D) {
     this.globalAlpha = 1;
 
     var el = document.createElement('div');
-    el.style.width =  surfaceElement.offsetWidth + 'px';
-    el.style.height = surfaceElement.offsetHeight + 'px';
+    el.style.width =  surfaceElement.clientWidth + 'px';
+    el.style.height = surfaceElement.clientHeight + 'px';
     el.style.overflow = 'hidden';
     el.style.position = 'absolute';
     surfaceElement.appendChild(el);
