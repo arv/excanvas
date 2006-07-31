@@ -53,7 +53,7 @@ if (!window.CanvasRenderingContext2D) {
         var ss = doc.createStyleSheet();
         ss.cssText = "canvas{display:inline-block;overflow:hidden;" +
             "text-align:left;}" +
-            "canvas *{behavior:url(#default#VML)}";
+            "g_vml_\\:*{behavior:url(#default#VML)}";
 
         // find all canvas elements
         var els = doc.getElementsByTagName("canvas");
