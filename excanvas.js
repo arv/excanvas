@@ -31,6 +31,10 @@ if (!window.CanvasRenderingContext2D) {
   var ms = m.sin;
   var mc = m.cos;
 
+  // this is used for sub pixel precision
+  var Z = 10;
+  var Z2 = Z / 2;
+
   var G_vmlCanvasManager_ = {
     init: function (opt_doc) {
       var doc = opt_doc || document;
@@ -247,7 +251,7 @@ if (!window.CanvasRenderingContext2D) {
     this.lineWidth = 1;
     this.lineJoin = "miter";
     this.lineCap = "butt";
-    this.miterLimit = 10;
+    this.miterLimit = Z * 1;
     this.globalAlpha = 1;
 
     var el = document.createElement('div');
@@ -303,14 +307,14 @@ if (!window.CanvasRenderingContext2D) {
 
   contextPrototype.arc = function(aX, aY, aRadius,
                                   aStartAngle, aEndAngle, aClockwise) {
-    aRadius *= 10;
+    aRadius *= Z;
     var arcType = aClockwise ? "at" : "wa";
 
-    var xStart = aX + (mc(aStartAngle) * aRadius) - 5;
-    var yStart = aY + (ms(aStartAngle) * aRadius) - 5;
+    var xStart = aX + (mc(aStartAngle) * aRadius) - Z2;
+    var yStart = aY + (ms(aStartAngle) * aRadius) - Z2;
 
-    var xEnd = aX + (mc(aEndAngle) * aRadius) - 5;
-    var yEnd = aY + (ms(aEndAngle) * aRadius) - 5;
+    var xEnd = aX + (mc(aEndAngle) * aRadius) - Z2;
+    var yEnd = aY + (ms(aEndAngle) * aRadius) - Z2;
 
     this.currentPath_.push({type: arcType,
                            x: aX,
@@ -371,8 +375,20 @@ if (!window.CanvasRenderingContext2D) {
 
   contextPrototype.drawImage = function (image, var_args) {
     var dx, dy, dw, dh, sx, sy, sw, sh;
+
+    // to find the original width we overide the width and height
+    var oldRuntimeWidth = image.runtimeStyle.width;
+    var oldRuntimeHeight = image.runtimeStyle.height;
+    image.runtimeStyle.width = 'auto';
+    image.runtimeStyle.height = 'auto';
+
+    // get the original size
     var w = image.width;
     var h = image.height;
+
+    // and remove overides
+    image.runtimeStyle.width = oldRuntimeWidth;
+    image.runtimeStyle.height = oldRuntimeHeight;
 
     if (arguments.length == 3) {
       dx = arguments[1];
@@ -403,16 +419,19 @@ if (!window.CanvasRenderingContext2D) {
 
     var d = this.getCoords_(dx, dy);
 
-    var w2 = (sw / 2);
-    var h2 = (sh / 2);
+    var w2 = sw / 2;
+    var h2 = sh / 2;
 
     var vmlStr = [];
 
+    var W = 10;
+    var H = 10;
+
     // For some reason that I've now forgotten, using divs didn't work
     vmlStr.push(' <g_vml_:group',
-                ' coordsize="1000,1000"',
-                ' coordorigin="0, 0"' ,
-                ' style="width:100px;height:100px;position:absolute;');
+                ' coordsize="', Z * W, ',', Z * H, '"',
+                ' coordorigin="0,0"' ,
+                ' style="width:', W, ';height:', H, ';position:absolute;');
 
     // If filters are necessary (rotation exists), create them
     // filters are bog-slow, so only create them if abbsolutely necessary
@@ -427,30 +446,30 @@ if (!window.CanvasRenderingContext2D) {
                   "M12='", this.m_[1][0], "',",
                   "M21='", this.m_[0][1], "',",
                   "M22='", this.m_[1][1], "',",
-                  "Dx='", d.x, "',",
-                  "Dy='", d.y, "'");
+                  "Dx='", mr(d.x / Z), "',",
+                  "Dy='", mr(d.y / Z), "'");
 
       // Bounding box calculation (need to minimize displayed area so that
       // filters don't waste time on unused pixels.
       var max = d;
-      var c2 = this.getCoords_(dx+dw, dy);
-      var c3 = this.getCoords_(dx, dy+dh);
-      var c4 = this.getCoords_(dx+dw, dy+dh);
+      var c2 = this.getCoords_(dx + dw, dy);
+      var c3 = this.getCoords_(dx, dy + dh);
+      var c4 = this.getCoords_(dx + dw, dy + dh);
 
       max.x = Math.max(max.x, c2.x, c3.x, c4.x);
       max.y = Math.max(max.y, c2.y, c3.y, c4.y);
 
-      vmlStr.push(" padding:0 ", mr(max.x), "px ", mr(max.y),
+      vmlStr.push("padding:0 ", mr(max.x / Z), "px ", mr(max.y / Z),
                   "px 0;filter:progid:DXImageTransform.Microsoft.Matrix(",
                   filter.join(""), ", sizingmethod='clip');")
     } else {
-      vmlStr.push(" top:", d.y, "px;left:", d.x, "px;")
+      vmlStr.push("top:", mr(d.y / Z), "px;left:", mr(d.x / Z), "px;")
     }
 
     vmlStr.push(' ">' ,
                 '<g_vml_:image src="', image.src, '"',
-                ' style="width:', dw, ';',
-                ' height:', dh, ';"',
+                ' style="width:', Z * dw, ';',
+                ' height:', Z * dh, ';"',
                 ' cropleft="', sx / w, '"',
                 ' croptop="', sy / h, '"',
                 ' cropright="', (w - sx - sw) / w, '"',
@@ -469,11 +488,14 @@ if (!window.CanvasRenderingContext2D) {
     var color = a[0];
     var opacity = a[1] * this.globalAlpha;
 
+    var W = 10;
+    var H = 10;
+
     lineStr.push('<g_vml_:shape',
                  ' fillcolor="', color, '"',
                  ' filled="', Boolean(aFill), '"',
-                 ' style="position:absolute;width:10;height:10;"',
-                 ' coordorigin="0 0" coordsize="100 100"',
+                 ' style="position:absolute;width:', W, ';height:', H, ';"',
+                 ' coordorigin="0 0" coordsize="', Z * W, ' ', Z * H, '"',
                  ' stroked="', !aFill, '"',
                  ' strokeweight="', this.lineWidth, '"',
                  ' strokecolor="', color, '"',
@@ -630,8 +652,8 @@ if (!window.CanvasRenderingContext2D) {
    */
   contextPrototype.getCoords_ = function(aX, aY) {
     return {
-      x: 10 * (aX * this.m_[0][0] + aY * this.m_[1][0] + this.m_[2][0]) - 5,
-      y: 10 * (aX * this.m_[0][1] + aY * this.m_[1][1] + this.m_[2][1]) - 5
+      x: Z * (aX * this.m_[0][0] + aY * this.m_[1][0] + this.m_[2][0]) - Z2,
+      y: Z * (aX * this.m_[0][1] + aY * this.m_[1][1] + this.m_[2][1]) - Z2
     }
   };
 
