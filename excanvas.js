@@ -56,7 +56,8 @@ if (!window.CanvasRenderingContext2D) {
         // setup default css
         var ss = doc.createStyleSheet();
         ss.cssText = "canvas{display:inline-block;overflow:hidden;" +
-            "text-align:left;}" +
+            // default size is 300x150 in Gecko and Opera
+            "text-align:left;width:300px;height:150px}" +
             "g_vml_\\:*{behavior:url(#default#VML)}";
 
         // find all canvas elements
@@ -118,11 +119,15 @@ if (!window.CanvasRenderingContext2D) {
         // TODO: use runtimeStyle and coordsize
         // el.getContext().setWidth_(attrs.width.nodeValue);
         el.style.width = attrs.width.nodeValue + "px";
+      } else {
+        el.width = el.clientWidth;
       }
       if (attrs.height && attrs.height.specified) {
         // TODO: use runtimeStyle and coordsize
         // el.getContext().setHeight_(attrs.height.nodeValue);
         el.style.height = attrs.height.nodeValue + "px";
+      } else {
+        el.height = el.clientHeight;
       }
       //el.getContext().setCoordsize_()
       return el;
@@ -253,6 +258,7 @@ if (!window.CanvasRenderingContext2D) {
     this.lineCap = "butt";
     this.miterLimit = Z * 1;
     this.globalAlpha = 1;
+    this.canvas = surfaceElement;
 
     var el = document.createElement('div');
     el.style.width =  surfaceElement.clientWidth + 'px';
