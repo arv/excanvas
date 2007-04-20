@@ -332,6 +332,12 @@ if (!window.CanvasRenderingContext2D) {
     var xEnd = aX + (mc(aEndAngle) * aRadius) - Z2;
     var yEnd = aY + (ms(aEndAngle) * aRadius) - Z2;
 
+    // IE won't render arches drawn counter clockwise if xStart == xEnd.
+    if (xStart == xEnd && !aClockwise) {
+      xStart += 0.125; // Offset xStart by 1/80 of a pixel. Use something
+                       // that can be represented in binary
+    }
+
     this.currentPath_.push({type: arcType,
                            x: aX,
                            y: aY,
