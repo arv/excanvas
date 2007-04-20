@@ -74,7 +74,8 @@ if (!window.CanvasRenderingContext2D) {
       // in IE before version 5.5 we would need to add HTML: to the tag name
       // but we do not care about IE before version 6
       var outerHTML = el.outerHTML;
-      var newEl = document.createElement(outerHTML);
+
+      var newEl = el.ownerDocument.createElement(outerHTML);
       // if the tag is still open IE has created the children as siblings and
       // it has also created a tag with the name "/FOO"
       if (outerHTML.slice(-2) != "/>") {
@@ -260,7 +261,7 @@ if (!window.CanvasRenderingContext2D) {
     this.globalAlpha = 1;
     this.canvas = surfaceElement;
 
-    var el = document.createElement('div');
+    var el = surfaceElement.ownerDocument.createElement('div');
     el.style.width =  surfaceElement.clientWidth + 'px';
     el.style.height = surfaceElement.clientHeight + 'px';
     el.style.overflow = 'hidden';
