@@ -251,7 +251,7 @@ if (!window.CanvasRenderingContext2D) {
 
     // Canvas context properties
     this.strokeStyle = "#000";
-    this.fillStyle = "#ccc";
+    this.fillStyle = "#000";
 
     this.lineWidth = 1;
     this.lineJoin = "miter";
@@ -287,10 +287,14 @@ if (!window.CanvasRenderingContext2D) {
 
   contextPrototype.moveTo = function(aX, aY) {
     this.currentPath_.push({type: "moveTo", x: aX, y: aY});
+    this.currentX_ = aX;
+    this.currentY_ = aY;
   };
 
   contextPrototype.lineTo = function(aX, aY) {
     this.currentPath_.push({type: "lineTo", x: aX, y: aY});
+    this.currentX_ = aX;
+    this.currentY_ = aY;
   };
 
   contextPrototype.bezierCurveTo = function(aCP1x, aCP1y,
@@ -303,12 +307,18 @@ if (!window.CanvasRenderingContext2D) {
                            cp2y: aCP2y,
                            x: aX,
                            y: aY});
+    this.currentX_ = aX;
+    this.currentY_ = aY;
   };
 
   contextPrototype.quadraticCurveTo = function(aCPx, aCPy, aX, aY) {
-    // VML's qb produces different output to Firefox's
-    // FF's behaviour seems to have changed in 1.5.0.1, check this
-    this.bezierCurveTo(aCPx, aCPy, aCPx, aCPy, aX, aY);
+    // the following is lifted almost directly from
+    // http://developer.mozilla.org/en/docs/Canvas_tutorial:Drawing_shapes
+    var cp1x = this.currentX_ + 2.0 / 3.0 * (aCPx - this.currentX_);
+    var cp1y = this.currentY_ + 2.0 / 3.0 * (aCPy - this.currentY_);
+    var cp2x = cp1x + (aX - this.currentX_) / 3.0;
+    var cp2y = cp1y + (aY - this.currentY_) / 3.0;
+    this.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, aX, aY);
   };
 
   contextPrototype.arc = function(aX, aY, aRadius,
