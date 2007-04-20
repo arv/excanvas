@@ -112,7 +112,7 @@ if (!window.CanvasRenderingContext2D) {
       };
 
       // do not use inline function because that will leak memory
-      // el.attachEvent('onpropertychange', onPropertyChange)
+      el.attachEvent('onpropertychange', onPropertyChange)
       el.attachEvent('onresize', onResize);
 
       var attrs = el.attributes;
@@ -136,11 +136,16 @@ if (!window.CanvasRenderingContext2D) {
   };
 
   function onPropertyChange(e) {
-    // we need to watch changes to width and height
+    var el = e.srcElement;
+    
     switch (e.propertyName) {
       case 'width':
+        el.style.width = el.attributes.width.nodeValue + "px";
+        el.context_.clearRect();
+        break;
       case 'height':
-        // TODO: coordsize and size
+        el.style.height = el.attributes.height.nodeValue + "px";
+        el.context_.clearRect();
         break;
     }
   }
@@ -199,6 +204,8 @@ if (!window.CanvasRenderingContext2D) {
     o2.shadowOffsetX = o1.shadowOffsetX;
     o2.shadowOffsetY = o1.shadowOffsetY;
     o2.strokeStyle   = o1.strokeStyle;
+    o2.arcScaleX_    = o1.arcScaleX_;
+    o2.arcScaleY_    = o1.arcScaleY_;
   }
 
   function processStyle(styleString) {
