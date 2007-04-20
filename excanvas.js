@@ -46,7 +46,7 @@ if (!window.CanvasRenderingContext2D) {
       }
     },
 
-    init_: function (doc, e) {
+    init_: function (doc) {
       if (doc.readyState == "complete") {
         // create xmlns
         if (!doc.namespaces["g_vml_"]) {
@@ -137,7 +137,7 @@ if (!window.CanvasRenderingContext2D) {
 
   function onPropertyChange(e) {
     var el = e.srcElement;
-    
+
     switch (e.propertyName) {
       case 'width':
         el.style.width = el.attributes.width.nodeValue + "px";
