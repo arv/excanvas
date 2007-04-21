@@ -12,13 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: Patterns
-// TODO: Radial gradient
-// TODO: Clipping paths
-// TODO: Coordsize (still need to support stretching)
-// TODO: Painting mode
-// TODO: Optimize
-// TODO: canvas width/height sets content size in moz, border size in ie
+
+// Known Issues:
+//
+// * Patterns are not implemented.
+// * Radial gradient are not implemented. The VML version of these look very
+//   different from the canvas one.
+// * Clipping paths are not implemented.
+// * Coordsize. The width and height attribute have higher priority than the
+//   width and height style values which isn't correct.
+// * Painting mode isn't implemented.
+// * Canvas width/height should is using content-box by default. IE in
+//   Quirks mode will draw the canvas using border-box. Either change your
+//   doctype to HTML5
+//   (http://www.whatwg.org/specs/web-apps/current-work/#the-doctype)
+//   or use Box Sizing Behavior from WebFX
+//   (http://webfx.eae.net/dhtml/boxsizing/boxsizing.html)
+// * Optimize. There is always room for speed improvements.
 
 // only add this code if we do not already have a canvas implementation
 if (!window.CanvasRenderingContext2D) {
