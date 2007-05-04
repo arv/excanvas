@@ -122,7 +122,7 @@ if (!window.CanvasRenderingContext2D) {
       };
 
       // do not use inline function because that will leak memory
-      el.attachEvent('onpropertychange', onPropertyChange)
+      el.attachEvent('onpropertychange', onPropertyChange);
       el.attachEvent('onresize', onResize);
 
       var attrs = el.attributes;
@@ -151,11 +151,11 @@ if (!window.CanvasRenderingContext2D) {
     switch (e.propertyName) {
       case 'width':
         el.style.width = el.attributes.width.nodeValue + "px";
-        el.context_.clearRect();
+        el.getContext().clearRect();
         break;
       case 'height':
         el.style.height = el.attributes.height.nodeValue + "px";
-        el.context_.clearRect();
+        el.getContext().clearRect();
         break;
     }
   }
