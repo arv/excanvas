@@ -229,7 +229,7 @@ if (!window.CanvasRenderingContext2D) {
 
       str = "#";
       for (var i = 0; i < 3; i++) {
-        str += dec2hex[parseInt(guts[i])];
+        str += dec2hex[Number(guts[i])];
       }
 
       if ((guts.length == 4) && (styleString.substr(3, 1) == "a")) {
