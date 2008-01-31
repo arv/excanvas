@@ -48,6 +48,10 @@ if (!window.CanvasRenderingContext2D) {
   var G_vmlCanvasManager_ = {
     init: function (opt_doc) {
       var doc = opt_doc || document;
+      // Create a dummy element so that IE will allow canvas elements to be
+      // recognized.
+      doc.createElement('canvas');
+
       if (/MSIE/.test(navigator.userAgent) && !window.opera) {
         var self = this;
         doc.attachEvent("onreadystatechange", function () {
@@ -80,30 +84,6 @@ if (!window.CanvasRenderingContext2D) {
       }
     },
 
-    fixElement_: function (el) {
-      // in IE before version 5.5 we would need to add HTML: to the tag name
-      // but we do not care about IE before version 6
-      var outerHTML = el.outerHTML;
-
-      var newEl = el.ownerDocument.createElement(outerHTML);
-      // if the tag is still open IE has created the children as siblings and
-      // it has also created a tag with the name "/FOO"
-      if (outerHTML.slice(-2) != "/>") {
-        var tagName = "/" + el.tagName;
-        var ns;
-        // remove content
-        while ((ns = el.nextSibling) && ns.tagName != tagName) {
-          ns.removeNode();
-        }
-        // remove the incorrect closing tag
-        if (ns) {
-          ns.removeNode();
-        }
-      }
-      el.parentNode.replaceChild(newEl, el);
-      return newEl;
-    },
-
     /**
      * Public initializes a canvas element so that it can be used as canvas
      * element from now on. This is called automatically before the page is
@@ -113,7 +93,6 @@ if (!window.CanvasRenderingContext2D) {
      * @return {HTMLElement} the element that was created.
      */
     initElement: function (el) {
-      el = this.fixElement_(el);
       el.getContext = function () {
         if (this.context_) {
           return this.context_;
