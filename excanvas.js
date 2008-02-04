@@ -364,6 +364,7 @@ if (!window.CanvasRenderingContext2D) {
     this.lineTo(aX, aY + aHeight);
     this.closePath();
     this.stroke();
+    this.currentPath_ = [];
   };
 
   contextPrototype.fillRect = function(aX, aY, aWidth, aHeight) {
@@ -375,11 +376,11 @@ if (!window.CanvasRenderingContext2D) {
     this.lineTo(aX, aY + aHeight);
     this.closePath();
     this.fill();
+    this.currentPath_ = [];
   };
 
   contextPrototype.createLinearGradient = function(aX0, aY0, aX1, aY1) {
-    var gradient = new CanvasGradient_("gradient");
-    return gradient;
+    return new CanvasGradient_("gradient");
   };
 
   contextPrototype.createRadialGradient = function(aX0, aY0,
