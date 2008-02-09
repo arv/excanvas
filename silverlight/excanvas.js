@@ -32,11 +32,10 @@
 
 //Known Issues: Silverlight version
 //
-// * Doing a transformation during a path (ie lineTo, transform, lineTo) will not
-//   work corerctly because the transform is done to the whole path (ie transform,
-//   lineTo, lineTo)
-// * Linear gradients are not working due to SL using 0-1 for start point where
-//   canvas uses coordinate space
+// * Doing a transformation during a path (ie lineTo, transform, lineTo) will
+//   not work corerctly because the transform is done to the whole path (ie
+//   transform, lineTo, lineTo)
+// * Radial gradients are not working correctly.  Some common cases do work.
 
 
 // only add this code if we do not already have a canvas implementation
@@ -476,7 +475,7 @@ if (!window.CanvasRenderingContext2D) {
     return new LinearCanvasGradient_(aX0, aY0, aX1, aY1);
   };
 
-  contextPrototype.createRadialGradient = function(x0, y,
+  contextPrototype.createRadialGradient = function(x0, y0,
                                                    r0, x1,
                                                    y1, r1) {
     return new RadialCanvasGradient_(x0, y0, r0, x1, y1, r1);
@@ -671,51 +670,52 @@ if (!window.CanvasRenderingContext2D) {
     this.colors_.push({offset: aOffset, color: aColor});
   };
 
+  CanvasGradient_.prototype.createStops_ = function(ctx, brushObj) {
+    var gradientStopCollection = brushObj.gradientStops;
+    for (var i = 0, c; c = this.colors_[i]; i++) {
+      var color = translateColor(c.color);
+      gradientStopCollection.add(create(ctx,
+          '<GradientStop Color="%1" Offset="%2"/>', [color, c.offset]));
+    }
+  };
+
   function LinearCanvasGradient_(x0, y0, x1, y1) {
     CanvasGradient_.call(this);
-    //this.x0_ = x0;
-    //this.y0_ = y0;
-    //this.x1_ = x1;
-    //this.y1_ = y1;
+    this.x0_ = x0;
+    this.y0_ = y0;
+    this.x1_ = x1;
+    this.y1_ = y1;
   }
   LinearCanvasGradient_.prototype = new CanvasGradient_;
 
   LinearCanvasGradient_.prototype.createBrush_ = function(ctx) {
-    // The Silverlight gradients are a bit different and until we have these
-    // correctly implemented just return the color of the first color stop
-    // just like the spec says.
-    return createBrushObject(ctx, this.colors_[0].color);
-
-  //  var brushObj = create(ctx, '<LinearGradientBrush ' +
-  //                             'StartPoint="%1,%2" EndPoint="%3,%4"/>',
-  //                        [this.x0_, this.y0_, this.x1_, this.y1_]);
-  //  var gradientStopCollection = brushObj.gradientStops;//create(ctx, '<GradientStopCollection/>');
-  //  for (var i = 0, c; c = this.colors_[i]; i++) {
-  //    var color = translateColor(c.color);
-  //    gradientStopCollection.add(create(ctx,
-  //        '<GradientStop Color="%1" Offset="%2"/>', [color, c.offset]));
-  //  }
-  //  //brushObj.gradientStops = gradientStopCollection;
-  //  return brushObj;
+    var brushObj = create(ctx, '<LinearGradientBrush MappingMode="Absolute" ' +
+                               'StartPoint="%1,%2" EndPoint="%3,%4"/>',
+                          [this.x0_, this.y0_, this.x1_, this.y1_]);
+    this.createStops_(ctx, brushObj);
+    return brushObj;
   };
 
   function RadialCanvasGradient_(x0, y0, r0, x1, y1, r1) {
     CanvasGradient_.call(this);
-    //this.x0_ = x0;
-    //this.y0_ = y0;
-    //this.r0_ = r0;
-    //this.x1_ = x1;
-    //this.y1_ = y1;
-    //this.r1_ = r1;
+    this.x0_ = x0;
+    this.y0_ = y0;
+    this.r0_ = r0;
+    this.x1_ = x1;
+    this.y1_ = y1;
+    this.r1_ = r1;
   }
   RadialCanvasGradient_.prototype = new CanvasGradient_;
 
   CanvasGradient_.prototype.createBrush_ = function(ctx) {
-    // The Silverlight gradients are a bit different and until we have these
-    // correctly implemented just return the color of the first color stop
-    // just like the spec says.
-    return createBrushObject(ctx, this.colors_[0].color);
-    //var brushObj = create(ctx, '<RadialGradientBrush/>');
+    // TODO(arv): This is known to be incorrect.
+    var radius = Math.max(this.r0_, this.r1_);
+    var brushObj = create(ctx, '<RadialGradientBrush MappingMode="Absolute" ' +
+                          'GradientOrigin="%1,%2" Center="%3,%4" ' +
+                          'RadiusX="%5" RadiusY="%5"/>',
+                          [this.x0_, this.y0_, this.x1_, this.y1_, radius]);
+    this.createStops_(ctx, brushObj);
+    return brushObj;
   };
 
   function CanvasPattern_() {}
