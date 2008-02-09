@@ -36,6 +36,7 @@
 //   not work corerctly because the transform is done to the whole path (ie
 //   transform, lineTo, lineTo)
 // * Radial gradients are not working correctly.  Some common cases do work.
+// * Patterns are not yet implemented.
 
 
 // only add this code if we do not already have a canvas implementation
@@ -56,7 +57,7 @@ if (!window.CanvasRenderingContext2D) {
 
         createXamlScriptTag();
 
-        doc.attachEvent("onreadystatechange", function () {
+        doc.attachEvent('onreadystatechange', function () {
           self.init_(doc);
         });
       }
@@ -65,14 +66,14 @@ if (!window.CanvasRenderingContext2D) {
     init_: function (doc) {
       // setup default css
       var ss = doc.createStyleSheet();
-      ss.cssText = "canvas{display:inline-block;overflow:hidden;" +
+      ss.cssText = 'canvas{display:inline-block;overflow:hidden;' +
           // default size is 300x150 in Gecko and Opera
-          "text-align:left;width:300px;height:150px}" +
-          "canvas object{width:100%;height:100%;border:0;" +
-          "background:transparen;margin:0}";
+          'text-align:left;width:300px;height:150px}' +
+          'canvas object{width:100%;height:100%;border:0;' +
+          'background:transparen;margin:0}';
 
       // find all canvas elements
-      var els = doc.getElementsByTagName("canvas");
+      var els = doc.getElementsByTagName('canvas');
       for (var i = 0; i < els.length; i++) {
         if (!els[i].getContext) {
           this.initElement(els[i]);
@@ -101,14 +102,14 @@ if (!window.CanvasRenderingContext2D) {
       if (attrs.width && attrs.width.specified) {
         // TODO: use runtimeStyle and coordsize
         // el.getContext().setWidth_(attrs.width.nodeValue);
-        el.style.width = attrs.width.nodeValue + "px";
+        el.style.width = attrs.width.nodeValue + 'px';
       } else {
         el.width = el.clientWidth;
       }
       if (attrs.height && attrs.height.specified) {
         // TODO: use runtimeStyle and coordsize
         // el.getContext().setHeight_(attrs.height.nodeValue);
-        el.style.height = attrs.height.nodeValue + "px";
+        el.style.height = attrs.height.nodeValue + 'px';
       } else {
         el.height = el.clientHeight;
       }
@@ -127,11 +128,11 @@ if (!window.CanvasRenderingContext2D) {
 
     switch (e.propertyName) {
       case 'width':
-        el.style.width = el.attributes.width.nodeValue + "px";
+        el.style.width = el.attributes.width.nodeValue + 'px';
         el.getContext().clearRect();
         break;
       case 'height':
-        el.style.height = el.attributes.height.nodeValue + "px";
+        el.style.height = el.attributes.height.nodeValue + 'px';
         el.getContext().clearRect();
         break;
     }
@@ -167,7 +168,7 @@ if (!window.CanvasRenderingContext2D) {
 
   function hasSilverlight() {
     try {
-      new ActiveXObject("AgControl.AgControl");
+      new ActiveXObject('AgControl.AgControl');
       return true;
     } catch(_) {
       return false;
@@ -270,13 +271,13 @@ if (!window.CanvasRenderingContext2D) {
 
   function processLineCap(lineCap) {
     switch (lineCap) {
-      case "butt":
-        return "flat";
-      case "round":
-        return "round";
-      case "square":
+      case 'butt':
+        return 'flat';
+      case 'round':
+        return 'round';
+      case 'square':
       default:
-        return "square";
+        return 'square';
     }
   }
 
@@ -316,7 +317,8 @@ if (!window.CanvasRenderingContext2D) {
     } else if (value instanceof CanvasPattern_) {
       throw Error('Not implemented');
     } else {
-      return create(ctx, '<SolidColorBrush Color="%1"/>', [translateColor(value)]);
+      return create(ctx, '<SolidColorBrush Color="%1"/>',
+                    [translateColor(value)]);
     }
   }
 
@@ -335,12 +337,12 @@ if (!window.CanvasRenderingContext2D) {
     this.currentPath_ = [];
 
     // Canvas context properties
-    this.strokeStyle = "#000";
-    this.fillStyle = "#000";
+    this.strokeStyle = '#000';
+    this.fillStyle = '#000';
 
     this.lineWidth = 1;
-    this.lineJoin = "miter";
-    this.lineCap = "butt";
+    this.lineJoin = 'miter';
+    this.lineCap = 'butt';
     this.miterLimit = 10;
     this.globalAlpha = 1;
     this.canvas = surfaceElement;
@@ -397,8 +399,6 @@ if (!window.CanvasRenderingContext2D) {
 
   contextPrototype.arc = function(aX, aY, aRadius,
                                   aStartAngle, aEndAngle, aClockwise) {
-    //this.currentPath_.push('A' + aX + ',' + aY + ' ' +
-
     var deltaAngle = Math.abs(aStartAngle - aEndAngle);
     // If start and stop are the same WebKit and Moz does nothing
     if (aStartAngle == aEndAngle) {
@@ -406,7 +406,7 @@ if (!window.CanvasRenderingContext2D) {
       return;
     }
 
-     var endX = aX + aRadius * Math.cos(aEndAngle);
+    var endX = aX + aRadius * Math.cos(aEndAngle);
     var endY = aY + aRadius * Math.sin(aEndAngle);
 
     if (deltaAngle >= 2 * Math.PI) {
@@ -507,7 +507,7 @@ if (!window.CanvasRenderingContext2D) {
       dw = arguments[7];
       dh = arguments[8];
     } else {
-      throw "Invalid number of arguments";
+      throw Error('Invalid number of arguments');
     }
 
     var slImage;
@@ -554,7 +554,7 @@ if (!window.CanvasRenderingContext2D) {
   contextPrototype.stroke = function() {
     if (this.currentPath_.length == 0) return;
     var path = drawShape(this, '<Path Data="%1"/>',
-                           [this.currentPath_.join(' ')]);
+                         [this.currentPath_.join(' ')]);
     path.stroke = createBrushObject(this, this.strokeStyle);
     path.opacity = this.globalAlpha;
     path.strokeThickness = this.lineWidth;
@@ -568,11 +568,11 @@ if (!window.CanvasRenderingContext2D) {
   contextPrototype.fill = function() {
     if (this.currentPath_.length == 0) return;
     var path = drawShape(this, '<Path Data="%1"/>',
-                           [this.currentPath_.join(' ')]);
+                         [this.currentPath_.join(' ')]);
     // The spec says to use non zero but Silverlight uses EvenOdd by defaul
     path.data.fillRule = 'NonZero';
     path.fill = createBrushObject(this, this.fillStyle);
-    // TODO(arv): What about even-odd etc?
+    // TODO: What about even-odd etc?
   };
 
   contextPrototype.closePath = function() {
@@ -690,7 +690,7 @@ if (!window.CanvasRenderingContext2D) {
 
   LinearCanvasGradient_.prototype.createBrush_ = function(ctx) {
     var brushObj = create(ctx, '<LinearGradientBrush MappingMode="Absolute" ' +
-                               'StartPoint="%1,%2" EndPoint="%3,%4"/>',
+                          'StartPoint="%1,%2" EndPoint="%3,%4"/>',
                           [this.x0_, this.y0_, this.x1_, this.y1_]);
     this.createStops_(ctx, brushObj);
     return brushObj;
