@@ -35,7 +35,6 @@
 // * Doing a transformation during a path (ie lineTo, transform, lineTo) will
 //   not work corerctly because the transform is done to the whole path (ie
 //   transform, lineTo, lineTo)
-// * Radial gradients are not working correctly.  Some common cases do work.
 // * Patterns are not yet implemented.
 
 
@@ -355,7 +354,7 @@ if (!window.CanvasRenderingContext2D) {
     var root = getRoot(this);
     root.children.clear();
 
-    // TODO(arv): Implement
+    // TODO: Implement
     this.currentPath_ = [];
     this.lastCanvas_ = null;
 
@@ -670,9 +669,9 @@ if (!window.CanvasRenderingContext2D) {
     this.colors_.push({offset: aOffset, color: aColor});
   };
 
-  CanvasGradient_.prototype.createStops_ = function(ctx, brushObj) {
+  CanvasGradient_.prototype.createStops_ = function(ctx, brushObj, colors) {
     var gradientStopCollection = brushObj.gradientStops;
-    for (var i = 0, c; c = this.colors_[i]; i++) {
+    for (var i = 0, c; c = colors[i]; i++) {
       var color = translateColor(c.color);
       gradientStopCollection.add(create(ctx,
           '<GradientStop Color="%1" Offset="%2"/>', [color, c.offset]));
@@ -692,11 +691,23 @@ if (!window.CanvasRenderingContext2D) {
     var brushObj = create(ctx, '<LinearGradientBrush MappingMode="Absolute" ' +
                           'StartPoint="%1,%2" EndPoint="%3,%4"/>',
                           [this.x0_, this.y0_, this.x1_, this.y1_]);
-    this.createStops_(ctx, brushObj);
+    this.createStops_(ctx, brushObj, this.colors_);
     return brushObj;
   };
 
+  function isNanOrInfinite(v) {
+    return isNaN(v) || !isFinite(v);
+  }
+
   function RadialCanvasGradient_(x0, y0, r0, x1, y1, r1) {
+    if (r0 < 0 || r1 < 0 || isNanOrInfinite(x0) || isNanOrInfinite(y0) ||
+        isNanOrInfinite(x1) || isNanOrInfinite(y1)) {
+      // IE does not support DOMException so this is as close as we get.
+      var error = Error('DOMException.INDEX_SIZE_ERR');
+      error.code = 1;
+      throw error;
+    }
+
     CanvasGradient_.call(this);
     this.x0_ = x0;
     this.y0_ = y0;
@@ -708,13 +719,41 @@ if (!window.CanvasRenderingContext2D) {
   RadialCanvasGradient_.prototype = new CanvasGradient_;
 
   CanvasGradient_.prototype.createBrush_ = function(ctx) {
-    // TODO(arv): This is known to be incorrect.
+    if (this.x0_ == this.x1_ && this.y0_ == this.y1_ && this.r0_ == this.r1_) {
+      return null;
+    }
+
     var radius = Math.max(this.r0_, this.r1_);
+    var minRadius = Math.min(this.r0_, this.r1_);
     var brushObj = create(ctx, '<RadialGradientBrush MappingMode="Absolute" ' +
                           'GradientOrigin="%1,%2" Center="%3,%4" ' +
                           'RadiusX="%5" RadiusY="%5"/>',
                           [this.x0_, this.y0_, this.x1_, this.y1_, radius]);
-    this.createStops_(ctx, brushObj);
+
+    var colors = this.colors_.concat();
+
+    if (this.r1_ < this.r0_) {
+      // reverse color stop array
+      colors.reverse();
+      for (var i = 0, c; c = colors[i]; i++) {
+        c.offset = 1 - c.offset;
+      }
+    }
+
+    // sort the color stops
+    colors.sort(function(c1, c2) {
+      return c1.offset - c2.offset;
+    });
+
+    if (minRadius > 0) {
+      // We need to adjust the color stops since SL always have the inner radius
+      // at (0, 0) so we change the stops in case the min radius is not 0.
+      for (var i = 0, c; c = colors[i]; i++) {
+        c.offset = minRadius / radius + (radius - minRadius) / radius * c.offset;
+      }
+    }
+
+    this.createStops_(ctx, brushObj, colors);
     return brushObj;
   };
 
