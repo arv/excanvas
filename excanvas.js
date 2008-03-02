@@ -33,7 +33,7 @@
 // only add this code if we do not already have a canvas implementation
 if (!window.CanvasRenderingContext2D) {
 
-(function () {
+(function() {
 
   // alias some functions to make (compiled) code shorter
   var m = Math;
@@ -45,22 +45,55 @@ if (!window.CanvasRenderingContext2D) {
   var Z = 10;
   var Z2 = Z / 2;
 
-  var G_vmlCanvasManager_ = {
-    init: function (opt_doc) {
-      var doc = opt_doc || document;
-      // Create a dummy element so that IE will allow canvas elements to be
-      // recognized.
-      doc.createElement('canvas');
+  /**
+   * This funtion is assigned to the <canvas> elements as element.getContext().
+   * @this {HTMLElement}
+   * @return {CanvasRenderingContext2D_}
+   */
+  function getContext() {
+    if (this.context_) {
+      return this.context_;
+    }
+    return this.context_ = new CanvasRenderingContext2D_(this);
+  }
 
+  var slice = Array.prototype.slice;
+
+  /**
+   * Binds a function to an object. The returned function will always use the
+   * passed in {@code obj} as {@code this}.
+   *
+   * Example:
+   *
+   *   g = bind(f, obj, a, b)
+   *   g(c, d) // will do f.call(obj, a, b, c, d)
+   *
+   * @param {Function} f The function to bind the object to
+   * @param {Object} obj The object that should act as this when the function
+   *     is called
+   * @param {*} var_args Rest arguments that will be used as the initial
+   *     arguments when the function is called
+   * @return {Function} A new function that has bound this
+   */
+  function bind(f, obj, var_args) {
+    var a = slice.call(arguments, 2);
+    return function() {
+      return f.apply(obj, a.concat(slice.call(arguments)));
+    };
+  }
+
+  var G_vmlCanvasManager_ = {
+    init: function(opt_doc) {
       if (/MSIE/.test(navigator.userAgent) && !window.opera) {
-        var self = this;
-        doc.attachEvent('onreadystatechange', function () {
-          self.init_(doc);
-        });
+        var doc = opt_doc || document;
+        // Create a dummy element so that IE will allow canvas elements to be
+        // recognized.
+        doc.createElement('canvas');
+        doc.attachEvent('onreadystatechange', bind(this.init_, this, doc));
       }
     },
 
-    init_: function (doc) {
+    init_: function(doc) {
       if (doc.readyState == 'complete') {
         // create xmlns
         if (!doc.namespaces['g_vml_']) {
@@ -92,13 +125,8 @@ if (!window.CanvasRenderingContext2D) {
      * @param {HTMLElement} el The canvas element to initialize.
      * @return {HTMLElement} the element that was created.
      */
-    initElement: function (el) {
-      el.getContext = function () {
-        if (this.context_) {
-          return this.context_;
-        }
-        return this.context_ = new CanvasRenderingContext2D_(this);
-      };
+    initElement: function(el) {
+      el.getContext = getContext;
 
       // do not use inline function because that will leak memory
       el.attachEvent('onpropertychange', onPropertyChange);
@@ -394,7 +422,7 @@ if (!window.CanvasRenderingContext2D) {
     return gradient;
   };
 
-  contextPrototype.drawImage = function (image, var_args) {
+  contextPrototype.drawImage = function(image, var_args) {
     var dx, dy, dw, dh, sx, sy, sw, sh;
 
     // to find the original width we overide the width and height
@@ -611,7 +639,7 @@ if (!window.CanvasRenderingContext2D) {
 
       // We need to sort 'colors' by percentage, from 0 > 100 otherwise ie
       // won't interpret it correctly
-      this.fillStyle.colors_.sort(function (cs1, cs2) {
+      this.fillStyle.colors_.sort(function(cs1, cs2) {
         return cs1.offset - cs2.offset;
       });
 
