@@ -685,8 +685,6 @@ if (!window.CanvasRenderingContext2D) {
     lineStr.push('</g_vml_:shape>');
 
     this.element_.insertAdjacentHTML('beforeEnd', lineStr.join(''));
-
-    this.currentPath_ = [];
   };
 
   contextPrototype.fill = function() {
