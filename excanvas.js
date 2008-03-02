@@ -491,12 +491,12 @@ if (!window.CanvasRenderingContext2D) {
       var filter = [];
 
       // Note the 12/21 reversal
-      filter.push('M11="', this.m_[0][0], '",',
-                  'M12="', this.m_[1][0], '",',
-                  'M21="', this.m_[0][1], '",',
-                  'M22="', this.m_[1][1], '",',
-                  'Dx="', mr(d.x / Z), '",',
-                  'Dy="', mr(d.y / Z), '"');
+      filter.push('M11=', this.m_[0][0], ',',
+                  'M12=', this.m_[1][0], ',',
+                  'M21=', this.m_[0][1], ',',
+                  'M22=', this.m_[1][1], ',',
+                  'Dx=', mr(d.x / Z), ',',
+                  'Dy=', mr(d.y / Z), '');
 
       // Bounding box calculation (need to minimize displayed area so that
       // filters don't waste time on unused pixels.
