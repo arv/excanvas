@@ -28,10 +28,11 @@
 //   (http://www.whatwg.org/specs/web-apps/current-work/#the-doctype)
 //   or use Box Sizing Behavior from WebFX
 //   (http://webfx.eae.net/dhtml/boxsizing/boxsizing.html)
+// * Non uniform scaling does not correctly scale strokes.
 // * Optimize. There is always room for speed improvements.
 
-// only add this code if we do not already have a canvas implementation
-if (!window.CanvasRenderingContext2D) {
+// Only add this code if we do not already have a canvas implementation
+if (!document.createElement('canvas').getContext) {
 
 (function() {
 
@@ -94,26 +95,25 @@ if (!window.CanvasRenderingContext2D) {
     },
 
     init_: function(doc) {
-      if (doc.readyState == 'complete') {
-        // create xmlns
-        if (!doc.namespaces['g_vml_']) {
-          doc.namespaces.add('g_vml_', 'urn:schemas-microsoft-com:vml');
-        }
+      // create xmlns
+      if (!doc.namespaces['g_vml_']) {
+        doc.namespaces.add('g_vml_', 'urn:schemas-microsoft-com:vml');
+      }
 
-        // setup default css
+      // Setup default CSS.  Only add one style sheet per document
+      if (!doc.styleSheets['ex_canvas_']) {
         var ss = doc.createStyleSheet();
+        ss.owningElement.id = 'ex_canvas_';
         ss.cssText = 'canvas{display:inline-block;overflow:hidden;' +
             // default size is 300x150 in Gecko and Opera
             'text-align:left;width:300px;height:150px}' +
             'g_vml_\\:*{behavior:url(#default#VML)}';
+      }
 
-        // find all canvas elements
-        var els = doc.getElementsByTagName('canvas');
-        for (var i = 0; i < els.length; i++) {
-          if (!els[i].getContext) {
-            this.initElement(els[i]);
-          }
-        }
+      // find all canvas elements
+      var els = doc.getElementsByTagName('canvas');
+      for (var i = 0; i < els.length; i++) {
+        this.initElement(els[i]);
       }
     },
 
@@ -126,28 +126,31 @@ if (!window.CanvasRenderingContext2D) {
      * @return {HTMLElement} the element that was created.
      */
     initElement: function(el) {
-      el.getContext = getContext;
+      if (!el.getContext) {
 
-      // do not use inline function because that will leak memory
-      el.attachEvent('onpropertychange', onPropertyChange);
-      el.attachEvent('onresize', onResize);
+        el.getContext = getContext;
 
-      var attrs = el.attributes;
-      if (attrs.width && attrs.width.specified) {
-        // TODO: use runtimeStyle and coordsize
-        // el.getContext().setWidth_(attrs.width.nodeValue);
-        el.style.width = attrs.width.nodeValue + 'px';
-      } else {
-        el.width = el.clientWidth;
+        // do not use inline function because that will leak memory
+        el.attachEvent('onpropertychange', onPropertyChange);
+        el.attachEvent('onresize', onResize);
+
+        var attrs = el.attributes;
+        if (attrs.width && attrs.width.specified) {
+          // TODO: use runtimeStyle and coordsize
+          // el.getContext().setWidth_(attrs.width.nodeValue);
+          el.style.width = attrs.width.nodeValue + 'px';
+        } else {
+          el.width = el.clientWidth;
+        }
+        if (attrs.height && attrs.height.specified) {
+          // TODO: use runtimeStyle and coordsize
+          // el.getContext().setHeight_(attrs.height.nodeValue);
+          el.style.height = attrs.height.nodeValue + 'px';
+        } else {
+          el.height = el.clientHeight;
+        }
+        //el.getContext().setCoordsize_()
       }
-      if (attrs.height && attrs.height.specified) {
-        // TODO: use runtimeStyle and coordsize
-        // el.getContext().setHeight_(attrs.height.nodeValue);
-        el.style.height = attrs.height.nodeValue + 'px';
-      } else {
-        el.height = el.clientHeight;
-      }
-      //el.getContext().setCoordsize_()
       return el;
     }
   };
@@ -240,7 +243,7 @@ if (!window.CanvasRenderingContext2D) {
         str += dec2hex[Number(guts[i])];
       }
 
-      if ((guts.length == 4) && (styleString.substr(3, 1) == 'a')) {
+      if (guts.length == 4 && styleString.substr(3, 1) == 'a') {
         alpha = guts[3];
       }
     } else {
@@ -307,34 +310,39 @@ if (!window.CanvasRenderingContext2D) {
   contextPrototype.beginPath = function() {
     // TODO: Branch current matrix so that save/restore has no effect
     //       as per safari docs.
-
     this.currentPath_ = [];
   };
 
   contextPrototype.moveTo = function(aX, aY) {
-    this.currentPath_.push({type: 'moveTo', x: aX, y: aY});
-    this.currentX_ = aX;
-    this.currentY_ = aY;
+    var p = this.getCoords_(aX, aY);
+    this.currentPath_.push({type: 'moveTo', x: p.x, y: p.y});
+    this.currentX_ = p.x;
+    this.currentY_ = p.y;
   };
 
   contextPrototype.lineTo = function(aX, aY) {
-    this.currentPath_.push({type: 'lineTo', x: aX, y: aY});
-    this.currentX_ = aX;
-    this.currentY_ = aY;
+    var p = this.getCoords_(aX, aY);
+    this.currentPath_.push({type: 'lineTo', x: p.x, y: p.y});
+
+    this.currentX_ = p.x;
+    this.currentY_ = p.y;
   };
 
   contextPrototype.bezierCurveTo = function(aCP1x, aCP1y,
                                             aCP2x, aCP2y,
                                             aX, aY) {
+    var p = this.getCoords_(aX, aY);
+    var cp1 = this.getCoords_(aCP1x, aCP1y);
+    var cp2 = this.getCoords_(aCP2x, aCP2y);
     this.currentPath_.push({type: 'bezierCurveTo',
-                           cp1x: aCP1x,
-                           cp1y: aCP1y,
-                           cp2x: aCP2x,
-                           cp2y: aCP2y,
-                           x: aX,
-                           y: aY});
-    this.currentX_ = aX;
-    this.currentY_ = aY;
+                           cp1x: cp1.x,
+                           cp1y: cp1.y,
+                           cp2x: cp2.x,
+                           cp2y: cp2.y,
+                           x: p.x,
+                           y: p.y});
+    this.currentX_ = p.x;
+    this.currentY_ = p.y;
   };
 
   contextPrototype.quadraticCurveTo = function(aCPx, aCPy, aX, aY) {
@@ -352,11 +360,11 @@ if (!window.CanvasRenderingContext2D) {
     aRadius *= Z;
     var arcType = aClockwise ? 'at' : 'wa';
 
-    var xStart = aX + (mc(aStartAngle) * aRadius) - Z2;
-    var yStart = aY + (ms(aStartAngle) * aRadius) - Z2;
+    var xStart = aX + mc(aStartAngle) * aRadius - Z2;
+    var yStart = aY + ms(aStartAngle) * aRadius - Z2;
 
-    var xEnd = aX + (mc(aEndAngle) * aRadius) - Z2;
-    var yEnd = aY + (ms(aEndAngle) * aRadius) - Z2;
+    var xEnd = aX + mc(aEndAngle) * aRadius - Z2;
+    var yEnd = aY + ms(aEndAngle) * aRadius - Z2;
 
     // IE won't render arches drawn counter clockwise if xStart == xEnd.
     if (xStart == xEnd && !aClockwise) {
@@ -364,14 +372,18 @@ if (!window.CanvasRenderingContext2D) {
                        // that can be represented in binary
     }
 
+    var p = this.getCoords_(aX, aY);
+    var pStart = this.getCoords_(xStart, yStart);
+    var pEnd = this.getCoords_(xEnd, yEnd);
+
     this.currentPath_.push({type: arcType,
-                           x: aX,
-                           y: aY,
+                           x: p.x,
+                           y: p.y,
                            radius: aRadius,
-                           xStart: xStart,
-                           yStart: yStart,
-                           xEnd: xEnd,
-                           yEnd: yEnd});
+                           xStart: pStart.x,
+                           yStart: pStart.y,
+                           xEnd: pEnd.x,
+                           yEnd: pEnd.y});
 
   };
 
@@ -556,37 +568,38 @@ if (!window.CanvasRenderingContext2D) {
 
     for (var i = 0; i < this.currentPath_.length; i++) {
       var p = this.currentPath_[i];
+      var c;
 
-      if (p.type == 'moveTo') {
-        lineStr.push(' m ');
-        var c = this.getCoords_(p.x, p.y);
-        lineStr.push(mr(c.x), ',', mr(c.y));
-      } else if (p.type == 'lineTo') {
-        lineStr.push(' l ');
-        var c = this.getCoords_(p.x, p.y);
-        lineStr.push(mr(c.x), ',', mr(c.y));
-      } else if (p.type == 'close') {
-        lineStr.push(' x ');
-      } else if (p.type == 'bezierCurveTo') {
-        lineStr.push(' c ');
-        var c = this.getCoords_(p.x, p.y);
-        var c1 = this.getCoords_(p.cp1x, p.cp1y);
-        var c2 = this.getCoords_(p.cp2x, p.cp2y);
-        lineStr.push(mr(c1.x), ',', mr(c1.y), ',',
-                     mr(c2.x), ',', mr(c2.y), ',',
-                     mr(c.x), ',', mr(c.y));
-      } else if (p.type == 'at' || p.type == 'wa') {
-        lineStr.push(' ', p.type, ' ');
-        var c  = this.getCoords_(p.x, p.y);
-        var cStart = this.getCoords_(p.xStart, p.yStart);
-        var cEnd = this.getCoords_(p.xEnd, p.yEnd);
-
-        lineStr.push(mr(c.x - this.arcScaleX_ * p.radius), ',',
-                     mr(c.y - this.arcScaleY_ * p.radius), ' ',
-                     mr(c.x + this.arcScaleX_ * p.radius), ',',
-                     mr(c.y + this.arcScaleY_ * p.radius), ' ',
-                     mr(cStart.x), ',', mr(cStart.y), ' ',
-                     mr(cEnd.x), ',', mr(cEnd.y));
+      switch (p.type) {
+        case 'moveTo':
+          lineStr.push(' m ');
+          c = p;
+          lineStr.push(mr(p.x), ',', mr(p.y));
+          break;
+        case 'lineTo':
+          lineStr.push(' l ');
+          lineStr.push(mr(p.x), ',', mr(p.y));
+          break;
+        case 'close':
+          lineStr.push(' x ');
+          p = null;
+          break;
+        case 'bezierCurveTo':
+          lineStr.push(' c ');
+          lineStr.push(mr(p.cp1x), ',', mr(p.cp1y), ',',
+                       mr(p.cp2x), ',', mr(p.cp2y), ',',
+                       mr(p.x), ',', mr(p.y));
+          break;
+        case 'at':
+        case 'wa':
+          lineStr.push(' ', p.type, ' ');
+          lineStr.push(mr(p.x - this.arcScaleX_ * p.radius), ',',
+                       mr(p.y - this.arcScaleY_ * p.radius), ' ',
+                       mr(p.x + this.arcScaleX_ * p.radius), ',',
+                       mr(p.y + this.arcScaleY_ * p.radius), ' ',
+                       mr(p.xStart), ',', mr(p.yStart), ' ',
+                       mr(p.xEnd), ',', mr(p.yEnd));
+          break;
       }
 
 
@@ -595,18 +608,18 @@ if (!window.CanvasRenderingContext2D) {
 
       // Figure out dimensions so we can do gradient fills
       // properly
-      if(c) {
-        if (min.x == null || c.x < min.x) {
-          min.x = c.x;
+      if (p) {
+        if (min.x == null || p.x < min.x) {
+          min.x = p.x;
         }
-        if (max.x == null || c.x > max.x) {
-          max.x = c.x;
+        if (max.x == null || p.x > max.x) {
+          max.x = p.x;
         }
-        if (min.y == null || c.y < min.y) {
-          min.y = c.y;
+        if (min.y == null || p.y < min.y) {
+          min.y = p.y;
         }
-        if (max.y == null || c.y > max.y) {
-          max.y = c.y;
+        if (max.y == null || p.y > max.y) {
+          max.y = p.y;
         }
       }
     }
@@ -614,21 +627,21 @@ if (!window.CanvasRenderingContext2D) {
 
     if (typeof this.fillStyle == 'object') {
       var focus = {x: '50%', y: '50%'};
-      var width = (max.x - min.x);
-      var height = (max.y - min.y);
-      var dimension = (width > height) ? width : height;
+      var width = max.x - min.x;
+      var height = max.y - min.y;
+      var dimension = width > height ? width : height;
 
-      focus.x = mr((this.fillStyle.focus_.x / width) * 100 + 50) + '%';
-      focus.y = mr((this.fillStyle.focus_.y / height) * 100 + 50) + '%';
+      focus.x = mr(this.fillStyle.focus_.x / width * 100 + 50) + '%';
+      focus.y = mr(this.fillStyle.focus_.y / height * 100 + 50) + '%';
 
       var colors = [];
 
       // inside radius (%)
       if (this.fillStyle.type_ == 'gradientradial') {
-        var inside = (this.fillStyle.radius1_ / dimension * 100);
+        var inside = this.fillStyle.radius1_ / dimension * 100;
 
         // percentage that outside radius exceeds inside radius
-        var expansion = (this.fillStyle.radius2_ / dimension * 100) - inside;
+        var expansion = this.fillStyle.radius2_ / dimension * 100 - inside;
       } else {
         var inside = 0;
         var expansion = 100;
@@ -646,7 +659,7 @@ if (!window.CanvasRenderingContext2D) {
       for (var i = 0; i < this.fillStyle.colors_.length; i++) {
         var fs = this.fillStyle.colors_[i];
 
-        colors.push( (fs.offset * expansion) + inside, '% ', fs.color, ',');
+        colors.push(fs.offset * expansion + inside, '% ', fs.color, ',');
 
         if (fs.offset > insidecolor.offset || insidecolor.offset == null) {
           insidecolor.offset = fs.offset;
@@ -671,14 +684,16 @@ if (!window.CanvasRenderingContext2D) {
       lineStr.push('<g_vml_:fill color="', color, '" opacity="', opacity,
                    '" />');
     } else {
+      var lineWidth = Math.max(this.arcScaleX_, this.arcScaleY_) *
+          this.lineWidth;
       lineStr.push(
         '<g_vml_:stroke',
-        ' opacity="', opacity,'"',
+        ' opacity="', opacity, '"',
         ' joinstyle="', this.lineJoin, '"',
         ' miterlimit="', this.miterLimit, '"',
-        ' endcap="', processLineCap(this.lineCap) ,'"',
-        ' weight="', this.lineWidth, 'px"',
-        ' color="', color,'" />'
+        ' endcap="', processLineCap(this.lineCap), '"',
+        ' weight="', lineWidth, 'px"',
+        ' color="', color, '" />'
       );
     }
 
