@@ -382,7 +382,7 @@ if (!window.CanvasRenderingContext2D) {
     if (this.currentPath_.length == 0) return;
     this.currentPath_.push('C' + aCP1x + ',' + aCP1y + ' ' +
                            aCP2x + ',' + aCP2y + ' ' +
-                           aX + '' + aY);
+                           aX + ' ' + aY);
   };
 
   contextPrototype.quadraticCurveTo = function(aCPx, aCPy, aX, aY) {
