@@ -334,25 +334,41 @@ if (!document.createElement('canvas').getContext) {
     var p = this.getCoords_(aX, aY);
     var cp1 = this.getCoords_(aCP1x, aCP1y);
     var cp2 = this.getCoords_(aCP2x, aCP2y);
-    this.currentPath_.push({type: 'bezierCurveTo',
-                           cp1x: cp1.x,
-                           cp1y: cp1.y,
-                           cp2x: cp2.x,
-                           cp2y: cp2.y,
-                           x: p.x,
-                           y: p.y});
-    this.currentX_ = p.x;
-    this.currentY_ = p.y;
+    bezierCurveTo(this, cp1, cp2, p);
   };
+
+  // Helper function that takes the already fixed cordinates.
+  function bezierCurveTo(self, cp1, cp2, p) {
+    self.currentPath_.push({
+      type: 'bezierCurveTo',
+      cp1x: cp1.x,
+      cp1y: cp1.y,
+      cp2x: cp2.x,
+      cp2y: cp2.y,
+      x: p.x,
+      y: p.y
+    });
+    self.currentX_ = p.x;
+    self.currentY_ = p.y;
+  }
 
   contextPrototype.quadraticCurveTo = function(aCPx, aCPy, aX, aY) {
     // the following is lifted almost directly from
     // http://developer.mozilla.org/en/docs/Canvas_tutorial:Drawing_shapes
-    var cp1x = this.currentX_ + 2.0 / 3.0 * (aCPx - this.currentX_);
-    var cp1y = this.currentY_ + 2.0 / 3.0 * (aCPy - this.currentY_);
-    var cp2x = cp1x + (aX - this.currentX_) / 3.0;
-    var cp2y = cp1y + (aY - this.currentY_) / 3.0;
-    this.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, aX, aY);
+
+    var cp = this.getCoords_(aCPx, aCPy);
+    var p = this.getCoords_(aX, aY);
+
+    var cp1 = {
+      x: this.currentX_ + 2.0 / 3.0 * (cp.x - this.currentX_),
+      y: this.currentY_ + 2.0 / 3.0 * (cp.y - this.currentY_)
+    };
+    var cp2 = {
+      x: cp1.x + (p.x - this.currentX_) / 3.0,
+      y: cp1.y + (p.y - this.currentY_) / 3.0
+    };
+
+    bezierCurveTo(this, cp1, cp2, p);
   };
 
   contextPrototype.arc = function(aX, aY, aRadius,
