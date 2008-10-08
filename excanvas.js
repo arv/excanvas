@@ -569,13 +569,10 @@ if (!document.createElement('canvas').getContext) {
     var H = 10;
 
     lineStr.push('<g_vml_:shape',
-                 ' fillcolor="', color, '"',
                  ' filled="', Boolean(aFill), '"',
                  ' style="position:absolute;width:', W, ';height:', H, ';"',
                  ' coordorigin="0 0" coordsize="', Z * W, ' ', Z * H, '"',
                  ' stroked="', !aFill, '"',
-                 ' strokeweight="', this.lineWidth, '"',
-                 ' strokecolor="', color, '"',
                  ' path="');
 
     var newSeq = false;
@@ -641,7 +638,29 @@ if (!document.createElement('canvas').getContext) {
     }
     lineStr.push(' ">');
 
-    if (typeof this.fillStyle == 'object') {
+    if (!aFill) {
+      // Determinant of this.m_ means how much the area is enlarged by the
+      // transformation, so its square root can be used as a scale factor
+      // for width.
+      var det = this.m_[0][0] * this.m_[1][1] - this.m_[0][1] * this.m_[1][0];
+      var lineWidth = Math.sqrt(Math.abs(det)) * this.lineWidth;
+
+      // VML cannot correctly render a line if the width is less than 1px.
+      // In that case, we dilute the color to make the line look thinner.
+      if (lineWidth < 1) {
+        opacity *= lineWidth;
+      }
+
+      lineStr.push(
+        '<g_vml_:stroke',
+        ' opacity="', opacity, '"',
+        ' joinstyle="', this.lineJoin, '"',
+        ' miterlimit="', this.miterLimit, '"',
+        ' endcap="', processLineCap(this.lineCap), '"',
+        ' weight="', lineWidth, 'px"',
+        ' color="', color, '" />'
+      );
+    } else if (typeof this.fillStyle == 'object') {
       var focus = {x: '50%', y: '50%'};
       var width = max.x - min.x;
       var height = max.y - min.y;
@@ -696,21 +715,9 @@ if (!document.createElement('canvas').getContext) {
                    ' focusposition="', focus.x, ', ', focus.y, '"',
                    ' colors="', colors.join(''), '"',
                    ' opacity="', opacity, '" />');
-    } else if (aFill) {
+    } else {
       lineStr.push('<g_vml_:fill color="', color, '" opacity="', opacity,
                    '" />');
-    } else {
-      var lineWidth = Math.max(this.arcScaleX_, this.arcScaleY_) *
-          this.lineWidth;
-      lineStr.push(
-        '<g_vml_:stroke',
-        ' opacity="', opacity, '"',
-        ' joinstyle="', this.lineJoin, '"',
-        ' miterlimit="', this.miterLimit, '"',
-        ' endcap="', processLineCap(this.lineCap), '"',
-        ' weight="', lineWidth, 'px"',
-        ' color="', color, '" />'
-      );
     }
 
     lineStr.push('</g_vml_:shape>');
