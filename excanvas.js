@@ -41,6 +41,9 @@ if (!document.createElement('canvas').getContext) {
   var mr = m.round;
   var ms = m.sin;
   var mc = m.cos;
+  var max = m.max;
+  var abs = m.abs;
+  var sqrt = m.sqrt;
 
   // this is used for sub pixel precision
   var Z = 10;
@@ -52,10 +55,8 @@ if (!document.createElement('canvas').getContext) {
    * @return {CanvasRenderingContext2D_}
    */
   function getContext() {
-    if (this.context_) {
-      return this.context_;
-    }
-    return this.context_ = new CanvasRenderingContext2D_(this);
+    return this.context_ ||
+        (this.context_ = new CanvasRenderingContext2D_(this));
   }
 
   var slice = Array.prototype.slice;
@@ -535,8 +536,8 @@ if (!document.createElement('canvas').getContext) {
       var c3 = this.getCoords_(dx, dy + dh);
       var c4 = this.getCoords_(dx + dw, dy + dh);
 
-      max.x = Math.max(max.x, c2.x, c3.x, c4.x);
-      max.y = Math.max(max.y, c2.y, c3.y, c4.y);
+      max.x = max(max.x, c2.x, c3.x, c4.x);
+      max.y = max(max.y, c2.y, c3.y, c4.y);
 
       vmlStr.push('padding:0 ', mr(max.x / Z), 'px ', mr(max.y / Z),
                   'px 0;filter:progid:DXImageTransform.Microsoft.Matrix(',
@@ -571,7 +572,7 @@ if (!document.createElement('canvas').getContext) {
     var H = 10;
 
     lineStr.push('<g_vml_:shape',
-                 ' filled="', Boolean(aFill), '"',
+                 ' filled="', !!aFill, '"',
                  ' style="position:absolute;width:', W, ';height:', H, ';"',
                  ' coordorigin="0 0" coordsize="', Z * W, ' ', Z * H, '"',
                  ' stroked="', !aFill, '"',
@@ -587,28 +588,26 @@ if (!document.createElement('canvas').getContext) {
 
       switch (p.type) {
         case 'moveTo':
-          lineStr.push(' m ');
           c = p;
-          lineStr.push(mr(p.x), ',', mr(p.y));
+          lineStr.push(' m ', mr(p.x), ',', mr(p.y));
           break;
         case 'lineTo':
-          lineStr.push(' l ');
-          lineStr.push(mr(p.x), ',', mr(p.y));
+          lineStr.push(' l ', mr(p.x), ',', mr(p.y));
           break;
         case 'close':
           lineStr.push(' x ');
           p = null;
           break;
         case 'bezierCurveTo':
-          lineStr.push(' c ');
-          lineStr.push(mr(p.cp1x), ',', mr(p.cp1y), ',',
+          lineStr.push(' c ',
+                       mr(p.cp1x), ',', mr(p.cp1y), ',',
                        mr(p.cp2x), ',', mr(p.cp2y), ',',
                        mr(p.x), ',', mr(p.y));
           break;
         case 'at':
         case 'wa':
-          lineStr.push(' ', p.type, ' ');
-          lineStr.push(mr(p.x - this.arcScaleX_ * p.radius), ',',
+          lineStr.push(' ', p.type, ' ',
+                       mr(p.x - this.arcScaleX_ * p.radius), ',',
                        mr(p.y - this.arcScaleY_ * p.radius), ' ',
                        mr(p.x + this.arcScaleX_ * p.radius), ',',
                        mr(p.y + this.arcScaleY_ * p.radius), ' ',
@@ -735,9 +734,10 @@ if (!document.createElement('canvas').getContext) {
    * @private
    */
   contextPrototype.getCoords_ = function(aX, aY) {
+    var m = this.m_;
     return {
-      x: Z * (aX * this.m_[0][0] + aY * this.m_[1][0] + this.m_[2][0]) - Z2,
-      y: Z * (aX * this.m_[0][1] + aY * this.m_[1][1] + this.m_[2][1]) - Z2
+      x: Z * (aX * m[0][0] + aY * m[1][0] + m[2][0]) - Z2,
+      y: Z * (aX * m[0][1] + aY * m[1][1] + m[2][1]) - Z2
     }
   };
 
@@ -786,14 +786,14 @@ if (!document.createElement('canvas').getContext) {
       [0,  0,  1]
     ];
 
-    this.m_ = matrixMultiply(m1, this.m_);
+    var m = this.m_ = matrixMultiply(m1, this.m_);
 
     // Get the line scale.
     // Determinant of this.m_ means how much the area is enlarged by the
     // transformation. So its square root can be used as a scale factor
     // for width.
-    var det = this.m_[0][0] * this.m_[1][1] - this.m_[0][1] * this.m_[1][0];
-    this.lineScale_ = Math.sqrt(Math.abs(det));
+    var det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+    this.lineScale_ = sqrt(abs(det));
   };
 
   /******** STUBS ********/
@@ -820,7 +820,7 @@ if (!document.createElement('canvas').getContext) {
 
   CanvasGradient_.prototype.addColorStop = function(aOffset, aColor) {
     aColor = processStyle(aColor);
-    this.colors_.push({offset: 1-aOffset, color: aColor});
+    this.colors_.push({offset: 1 - aOffset, color: aColor});
   };
 
   function CanvasPattern_() {}
