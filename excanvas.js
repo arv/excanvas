@@ -227,6 +227,7 @@ if (!document.createElement('canvas').getContext) {
     o2.globalAlpha   = o1.globalAlpha;
     o2.arcScaleX_    = o1.arcScaleX_;
     o2.arcScaleY_    = o1.arcScaleY_;
+    o2.lineScale_    = o1.lineScale_;
   }
 
   function processStyle(styleString) {
@@ -299,6 +300,7 @@ if (!document.createElement('canvas').getContext) {
     this.element_ = el;
     this.arcScaleX_ = 1;
     this.arcScaleY_ = 1;
+    this.lineScale_ = 1;
   }
 
   var contextPrototype = CanvasRenderingContext2D_.prototype;
@@ -639,11 +641,7 @@ if (!document.createElement('canvas').getContext) {
     lineStr.push(' ">');
 
     if (!aFill) {
-      // Determinant of this.m_ means how much the area is enlarged by the
-      // transformation, so its square root can be used as a scale factor
-      // for width.
-      var det = this.m_[0][0] * this.m_[1][1] - this.m_[0][1] * this.m_[1][0];
-      var lineWidth = Math.sqrt(Math.abs(det)) * this.lineWidth;
+      var lineWidth = this.lineScale_ * this.lineWidth;
 
       // VML cannot correctly render a line if the width is less than 1px.
       // In that case, we dilute the color to make the line look thinner.
@@ -789,6 +787,13 @@ if (!document.createElement('canvas').getContext) {
     ];
 
     this.m_ = matrixMultiply(m1, this.m_);
+
+    // Get the line scale.
+    // Determinant of this.m_ means how much the area is enlarged by the
+    // transformation. So its square root can be used as a scale factor
+    // for width.
+    var det = this.m_[0][0] * this.m_[1][1] - this.m_[0][1] * this.m_[1][0];
+    this.lineScale_ = Math.sqrt(Math.abs(det));
   };
 
   /******** STUBS ********/
