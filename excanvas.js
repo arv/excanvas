@@ -41,7 +41,6 @@ if (!document.createElement('canvas').getContext) {
   var mr = m.round;
   var ms = m.sin;
   var mc = m.cos;
-  var max = m.max;
   var abs = m.abs;
   var sqrt = m.sqrt;
 
@@ -536,8 +535,8 @@ if (!document.createElement('canvas').getContext) {
       var c3 = this.getCoords_(dx, dy + dh);
       var c4 = this.getCoords_(dx + dw, dy + dh);
 
-      max.x = max(max.x, c2.x, c3.x, c4.x);
-      max.y = max(max.y, c2.y, c3.y, c4.y);
+      max.x = m.max(max.x, c2.x, c3.x, c4.x);
+      max.y = m.max(max.y, c2.y, c3.y, c4.y);
 
       vmlStr.push('padding:0 ', mr(max.x / Z), 'px ', mr(max.y / Z),
                   'px 0;filter:progid:DXImageTransform.Microsoft.Matrix(',
