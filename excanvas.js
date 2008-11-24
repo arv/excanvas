@@ -99,6 +99,9 @@ if (!document.createElement('canvas').getContext) {
       if (!doc.namespaces['g_vml_']) {
         doc.namespaces.add('g_vml_', 'urn:schemas-microsoft-com:vml');
       }
+      if (!doc.namespaces['g_o_']) {
+        doc.namespaces.add('g_o_', 'urn:schemas-microsoft-com:office:office');
+      }
 
       // Setup default CSS.  Only add one style sheet per document
       if (!doc.styleSheets['ex_canvas_']) {
@@ -251,7 +254,7 @@ if (!document.createElement('canvas').getContext) {
       str = styleString;
     }
 
-    return [str, alpha];
+    return {color: str, alpha: alpha};
   }
 
   function processLineCap(lineCap) {
@@ -438,17 +441,23 @@ if (!document.createElement('canvas').getContext) {
   };
 
   contextPrototype.createLinearGradient = function(aX0, aY0, aX1, aY1) {
-    return new CanvasGradient_('gradient');
+    var gradient = new CanvasGradient_('gradient');
+    gradient.x0_ = aX0;
+    gradient.y0_ = aY0;
+    gradient.x1_ = aX1;
+    gradient.y1_ = aY1;
+    return gradient;
   };
 
-  contextPrototype.createRadialGradient = function(aX0, aY0,
-                                                   aR0, aX1,
-                                                   aY1, aR1) {
+  contextPrototype.createRadialGradient = function(aX0, aY0, aR0,
+                                                   aX1, aY1, aR1) {
     var gradient = new CanvasGradient_('gradientradial');
-    gradient.radius1_ = aR0;
-    gradient.radius2_ = aR1;
-    gradient.focus_.x = aX0;
-    gradient.focus_.y = aY0;
+    gradient.x0_ = aX0;
+    gradient.y0_ = aY0;
+    gradient.r0_ = aR0;
+    gradient.x1_ = aX1;
+    gradient.y1_ = aY1;
+    gradient.r1_ = aR1;
     return gradient;
   };
 
@@ -564,8 +573,8 @@ if (!document.createElement('canvas').getContext) {
     var lineStr = [];
     var lineOpen = false;
     var a = processStyle(aFill ? this.fillStyle : this.strokeStyle);
-    var color = a[0];
-    var opacity = a[1] * this.globalAlpha;
+    var color = a.color;
+    var opacity = a.alpha * this.globalAlpha;
 
     var W = 10;
     var H = 10;
@@ -657,60 +666,82 @@ if (!document.createElement('canvas').getContext) {
         ' color="', color, '" />'
       );
     } else if (typeof this.fillStyle == 'object') {
-      var focus = {x: '50%', y: '50%'};
-      var width = max.x - min.x;
-      var height = max.y - min.y;
-      var dimension = width > height ? width : height;
+      var fillStyle = this.fillStyle;
+      var angle = 0;
+      var focus = {x: 0, y: 0};
 
-      focus.x = mr(this.fillStyle.focus_.x / width * 100 + 50) + '%';
-      focus.y = mr(this.fillStyle.focus_.y / height * 100 + 50) + '%';
+      // additional offset
+      var shift = 0;
+      // scale factor for offset
+      var expansion = 1;
 
-      var colors = [];
+      if (fillStyle.type_ == 'gradient') {
+        var x0 = fillStyle.x0_ / this.arcScaleX_;
+        var y0 = fillStyle.y0_ / this.arcScaleY_;
+        var x1 = fillStyle.x1_ / this.arcScaleX_;
+        var y1 = fillStyle.y1_ / this.arcScaleY_;
+        var p0 = this.getCoords_(x0, y0);
+        var p1 = this.getCoords_(x1, y1);
+        var dx = p1.x - p0.x;
+        var dy = p1.y - p0.y;
+        angle = Math.atan2(dx, dy) * 180 / Math.PI;
 
-      // inside radius (%)
-      if (this.fillStyle.type_ == 'gradientradial') {
-        var inside = this.fillStyle.radius1_ / dimension * 100;
+        // The angle should be a non-negative number.
+        if (angle < 0) {
+          angle += 360;
+        }
 
-        // percentage that outside radius exceeds inside radius
-        var expansion = this.fillStyle.radius2_ / dimension * 100 - inside;
+        // Very small angles produce an unexpected result because they are
+        // converted to a scientific notation string.
+        if (angle < 1e-6) {
+          angle = 0;
+        }
       } else {
-        var inside = 0;
-        var expansion = 100;
+        var p0 = this.getCoords_(fillStyle.x0_, fillStyle.y0_);
+        var width  = max.x - min.x;
+        var height = max.y - min.y;
+        focus = {
+          x: (p0.x - min.x) / width,
+          y: (p0.y - min.y) / height
+        };
+
+        width  /= this.arcScaleX_ * Z;
+        height /= this.arcScaleY_ * Z;
+        var dimension = m.max(width, height);
+        shift = 2 * fillStyle.r0_ / dimension;
+        expansion = 2 * fillStyle.r1_ / dimension - shift;
       }
 
-      var insidecolor = {offset: null, color: null};
-      var outsidecolor = {offset: null, color: null};
-
-      // We need to sort 'colors' by percentage, from 0 > 100 otherwise ie
-      // won't interpret it correctly
-      this.fillStyle.colors_.sort(function(cs1, cs2) {
+      // We need to sort the color stops in ascending order by offset,
+      // otherwise IE won't interpret it correctly.
+      var stops = fillStyle.colors_;
+      stops.sort(function(cs1, cs2) {
         return cs1.offset - cs2.offset;
       });
 
-      for (var i = 0; i < this.fillStyle.colors_.length; i++) {
-        var fs = this.fillStyle.colors_[i];
+      var length = stops.length;
+      var color1 = stops[0].color;
+      var color2 = stops[length - 1].color;
+      var opacity1 = stops[0].alpha * this.globalAlpha;
+      var opacity2 = stops[length - 1].alpha * this.globalAlpha;
 
-        colors.push(fs.offset * expansion + inside, '% ', fs.color, ',');
-
-        if (fs.offset > insidecolor.offset || insidecolor.offset == null) {
-          insidecolor.offset = fs.offset;
-          insidecolor.color = fs.color;
-        }
-
-        if (fs.offset < outsidecolor.offset || outsidecolor.offset == null) {
-          outsidecolor.offset = fs.offset;
-          outsidecolor.color = fs.color;
-        }
+      var colors = [];
+      for (var i = 0; i < length; i++) {
+        var stop = stops[i];
+        colors.push(stop.offset * expansion + shift + ' ' + stop.color);
       }
-      colors.pop();
 
-      lineStr.push('<g_vml_:fill',
-                   ' color="', outsidecolor.color, '"',
-                   ' color2="', insidecolor.color, '"',
-                   ' type="', this.fillStyle.type_, '"',
-                   ' focusposition="', focus.x, ', ', focus.y, '"',
-                   ' colors="', colors.join(''), '"',
-                   ' opacity="', opacity, '" />');
+      // When colors attribute is used, the meanings of opacity and o:opacity2
+      // are reversed.
+      lineStr.push('<g_vml_:fill type="', fillStyle.type_, '"',
+                   ' method="none" focus="100%"',
+                   ' color="', color1, '"',
+                   ' color2="', color2, '"',
+                   ' colors="', colors.join(','), '"',
+                   ' opacity="', opacity2, '"',
+                   ' g_o_:opacity2="', opacity1, '"',
+                   ' angle="', angle, '"',
+                   ' focusposition="', focus.x, ',', focus.y, '" />');
     } else {
       lineStr.push('<g_vml_:fill color="', color, '" opacity="', opacity,
                    '" />');
@@ -811,15 +842,20 @@ if (!document.createElement('canvas').getContext) {
   // Gradient / Pattern Stubs
   function CanvasGradient_(aType) {
     this.type_ = aType;
-    this.radius1_ = 0;
-    this.radius2_ = 0;
+    this.x0_ = 0;
+    this.y0_ = 0;
+    this.r0_ = 0;
+    this.x1_ = 0;
+    this.y1_ = 0;
+    this.r1_ = 0;
     this.colors_ = [];
-    this.focus_ = {x: 0, y: 0};
   }
 
   CanvasGradient_.prototype.addColorStop = function(aOffset, aColor) {
     aColor = processStyle(aColor);
-    this.colors_.push({offset: 1 - aOffset, color: aColor});
+    this.colors_.push({offset: aOffset,
+                       color: aColor.color,
+                       alpha: aColor.alpha});
   };
 
   function CanvasPattern_() {}
