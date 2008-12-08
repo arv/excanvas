@@ -97,10 +97,13 @@ if (!document.createElement('canvas').getContext) {
     init_: function(doc) {
       // create xmlns
       if (!doc.namespaces['g_vml_']) {
-        doc.namespaces.add('g_vml_', 'urn:schemas-microsoft-com:vml');
+        doc.namespaces.add('g_vml_', 'urn:schemas-microsoft-com:vml',
+                           '#default#VML');
+
       }
       if (!doc.namespaces['g_o_']) {
-        doc.namespaces.add('g_o_', 'urn:schemas-microsoft-com:office:office');
+        doc.namespaces.add('g_o_', 'urn:schemas-microsoft-com:office:office',
+                           '#default#VML');
       }
 
       // Setup default CSS.  Only add one style sheet per document
@@ -110,7 +113,9 @@ if (!document.createElement('canvas').getContext) {
         ss.cssText = 'canvas{display:inline-block;overflow:hidden;' +
             // default size is 300x150 in Gecko and Opera
             'text-align:left;width:300px;height:150px}' +
-            'g_vml_\\:*{behavior:url(#default#VML)}';
+            'g_vml_\\:*{behavior:url(#default#VML)}' +
+            'g_o_\\:*{behavior:url(#default#VML)}';
+
       }
 
       // find all canvas elements
@@ -519,7 +524,7 @@ if (!document.createElement('canvas').getContext) {
     vmlStr.push(' <g_vml_:group',
                 ' coordsize="', Z * W, ',', Z * H, '"',
                 ' coordorigin="0,0"' ,
-                ' style="width:', W, ';height:', H, ';position:absolute;');
+                ' style="width:', W, 'px;height:', H, 'px;position:absolute;');
 
     // If filters are necessary (rotation exists), create them
     // filters are bog-slow, so only create them if abbsolutely necessary
@@ -556,8 +561,8 @@ if (!document.createElement('canvas').getContext) {
 
     vmlStr.push(' ">' ,
                 '<g_vml_:image src="', image.src, '"',
-                ' style="width:', Z * dw, ';',
-                ' height:', Z * dh, ';"',
+                ' style="width:', Z * dw, 'px;',
+                ' height:', Z * dh, 'px;"',
                 ' cropleft="', sx / w, '"',
                 ' croptop="', sy / h, '"',
                 ' cropright="', (w - sx - sw) / w, '"',
@@ -581,7 +586,7 @@ if (!document.createElement('canvas').getContext) {
 
     lineStr.push('<g_vml_:shape',
                  ' filled="', !!aFill, '"',
-                 ' style="position:absolute;width:', W, ';height:', H, ';"',
+                 ' style="position:absolute;width:', W, 'px;height:', H, 'px;"',
                  ' coordorigin="0 0" coordsize="', Z * W, ' ', Z * H, '"',
                  ' stroked="', !aFill, '"',
                  ' path="');
